@@ -25,7 +25,7 @@ Challenge - Gene expression data is generated using different platforms (e.g., A
    
 Outcome - Homogenous and hetrogenous datasets were identified.
 
-## Objective 2 : Study the effect of using homogenous datasets for Machine Learning models
+## Objective 2 : Study the effect of using heterogenous datasets for Machine Learning models
 
 ### Methodology - 
 
@@ -46,3 +46,4 @@ Outcome - Homogenous and hetrogenous datasets were identified.
 Hypothesis - The test data made of homogenous dataset (test1) must show greater accuracy than test data made of heterogenous dataset (test2).
 
 
+Contact me - saniyanagesh.dhadge2021@vitstudent.ac.in
