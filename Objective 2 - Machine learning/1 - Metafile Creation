@@ -34,3 +34,5 @@ dim(metafile) #6773
 
 phenodata=read.csv("merged_pheno_data.csv",header=TRUE)
 dim(phenodata) #428 3
+
+#here my phenodata has 3 columns - Batch (contains dataset_id e.g: GSE18312, GSE27383 etc), GSE_id (contains sample ids or GSM ids) and Pheno_data(SCZ/CNT)
