@@ -1,0 +1,33 @@
+#####Batch correction##########
+
+#model matriX with batches of pheno data
+modphenoBC=model.matrix(~1, data=phenodata)
+phenodata$Batch <- as.factor(phenodata$Batch)
+phenoBatch=phenodata$Batch
+
+#convert gene symbols to rownames to form uniform matriX of metafile
+metafile=column_to_rownames(metafile,var='Genes')
+metafile.numeric=mutate_all(metafile, as.numeric)
+
+#batch correction
+metabc1=ComBat(dat=metafile,batch=phenoBatch,mod=modphenoBC)
+dim(metabc1)
+
+#PCA plot for before and after batch correction
+
+pca_before<-prcomp(t(metafile.numeric))
+#metafile.numeric=as.data.frame(t(metafile.numeric))
+#pca_before <- prcomp(t(metafile.numeric))
+
+# Convert Batch to categorical
+new2<- autoplot(pca_before, data=phenodata, colour= "Batch" 
+                ,main="Before batch correction", scale. = TRUE)+ theme_bw()
+print(new2)
+
+
+#PCA plot after batch effects removal
+pca_after<-prcomp(t(metabc1))
+new<- autoplot(pca_after, data=phenodata, colour= "Batch" 
+               ,main="After batch correction", scale. = TRUE)+ theme_bw()
+
+print(new)
