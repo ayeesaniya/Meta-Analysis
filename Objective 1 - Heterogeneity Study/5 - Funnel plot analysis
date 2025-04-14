@@ -1,0 +1,77 @@
+##############funnel plot value table (table2) 0/1 table#########
+
+# Function to check if a point is inside the triangle
+cross_product <- function(P, A, B) {
+  return((P[1] - A[1]) * (B[2] - A[2]) - (P[2] - A[2]) * (B[1] - A[1]))
+}
+
+is_inside_triangle <- function(P, A, B, C) {
+  sign1 <- cross_product(P, A, B)
+  sign2 <- cross_product(P, B, C)
+  sign3 <- cross_product(P, C, A)
+  
+  return((sign1 >= 0 & sign2 >= 0 & sign3 >= 0) | (sign1 <= 0 & sign2 <= 0 & sign3 <= 0))
+}
+
+# Extract unique gene names
+gene_names <- unique(funnelplotvalue$Genes)
+
+# Initialize results matrix
+results_matrix <- matrix(NA, nrow = length(gene_names), ncol = 6)
+colnames(results_matrix) <- c("Gene", paste("Dataset", 1:5))
+results_matrix[,1] <- gene_names  # First column stores gene names
+
+# Loop through each gene
+for (i in seq_along(gene_names)) {
+  gene_name <- gene_names[i]
+  cat("Processing gene:", gene_name, "\n")  # Print the gene name for debugging
+  
+  gene_data <- funnelplotvalue[funnelplotvalue$Genes == gene_name, ]
+  
+  logFC_cols <- grep("logFC_", colnames(funnelplotvalue), value = TRUE)
+  vi_cols <- grep("vi_", colnames(funnelplotvalue), value = TRUE)
+  
+  if (nrow(gene_data) == 0) {
+    cat("Skipping", gene_name, "- No data available\n")
+    next  
+  }
+  
+  gene_data_long <- data.frame(
+    Dataset = 1:5,
+    yi = as.numeric(gene_data[, logFC_cols]),
+    vi = as.numeric(gene_data[, vi_cols])
+  )
+  gene_data_long$se <- sqrt(gene_data_long$vi)
+  
+  # Skip genes with very small variance
+  gene_data_long <- gene_data_long[gene_data_long$vi > 1e-6, ]
+  if (nrow(gene_data_long) == 0) {
+    cat("Skipping", gene_name, "- Variance too low\n")
+    next  
+  }
+  
+  # Try-catch to handle errors in rma()
+  try({
+    rma_result <- rma(yi = gene_data_long$yi, vi = gene_data_long$vi, method = "REML")
+    pooled_effect <- as.numeric(rma_result$beta)
+    
+    max_se <- max(gene_data_long$se)
+    left <- pooled_effect - 1.96 * max_se
+    right <- pooled_effect + 1.96 * max_se
+    
+    A <- c(pooled_effect, 0)
+    B <- c(left, max_se)
+    C <- c(right, max_se)
+    
+    inside_status <- apply(gene_data_long[, c("yi", "se")], 1, function(row) {
+      is_inside_triangle(row, A, B, C)
+    })
+    
+    results_matrix[i, 2:6] <- as.numeric(inside_status)
+  }, silent = TRUE)
+}
+
+
+# Convert matrix to data frame
+results_df <- as.data.frame(results_matrix)
+results_df[, 2:6] <- lapply(results_df[, 2:6], as.numeric)  # Ensure numeric values
