@@ -1,0 +1,89 @@
+#############Batch correction##############
+##batch correction of train data
+
+batch_correction_pca_plot <- function(qnorm_data, labels, data_name){
+  
+  # Batch Correction
+  phenobatch = data.frame(Batch = labels$Batch)
+  modphenoBC = model.matrix(~1, data=phenobatch)
+  corrected_data = ComBat(dat = qnorm_data, batch = labels$Batch, mod = modphenoBC)
+  
+  # PCA before correction
+  qnorm_data_numeric <- apply(qnorm_data, 2, as.numeric)
+  pca_before <- prcomp(t(qnorm_data_numeric), scale. = TRUE)
+  p_before <- autoplot(pca_before, data=labels, colour="Batch",
+                       main=paste("Before Batch Correction:", data_name)) + theme_bw()
+  
+  # PCA after correction
+  pca_after <- prcomp(t(corrected_data), scale. = TRUE)
+  p_after <- autoplot(pca_after, data=labels, colour="Batch",
+                      main=paste("After Batch Correction:", data_name)) + theme_bw()
+  
+  # Combine plots side by side
+  grid.arrange(p_before, p_after, ncol=2)
+  
+  assign(paste0(data_name, "_bc"), corrected_data, envir = .GlobalEnv)
+}
+
+train_bc  <- batch_correction_pca_plot(qnorm_train, train_labels, "Train Data")
+
+#####Batch correction for test data using train dataset as reference dataset
+#creating merged_data
+#merged data = train_bc+test1/2
+rownames(test1) <- test1[, 1]
+test1 <- test1[, -1]
+merged_data1 <- cbind(train_bc, test1)
+
+rownames(test2) <- test2[, 1]
+test2 <- test2[, -1]
+merged_data2 <- cbind(train_bc, test2)
+
+train_labels$Batch <- 1
+test1_labels$Batch <- 2
+test2_labels$Batch<- 3
+merged_data1_pheno <- as.data.frame(rbind(train_labels, test1_labels))
+merged_data2_pheno <- as.data.frame(rbind(train_labels, test2_labels))
+
+
+batch1 = merged_data1_pheno$Batch
+mod1 = model.matrix(~as.factor(Pheno_data), data=merged_data1_pheno)
+merged_data1_bc = ComBat(dat=merged_data1, batch=batch1, mod=mod1, par.prior=TRUE, ref.batch=1)
+
+batch2 = merged_data2_pheno$Batch
+mod2 = model.matrix(~as.factor(Pheno_data), data=merged_data2_pheno)
+merged_data2_bc = ComBat(dat=merged_data2, batch=batch2, mod=mod2, par.prior=TRUE, ref.batch=1)
+
+make_pca_batch_plots <- function(labels, before_bc_data, after_bc_data, data_name = "Dataset") {
+  before_numeric <- apply(before_bc_data, 2, as.numeric)
+  after_numeric <- apply(after_bc_data, 2, as.numeric)
+  labels$Batch <- as.factor(labels$Batch)
+  # PCA before correction
+  pca_before <- prcomp(t(before_numeric), scale. = TRUE)
+  p_before <- autoplot(pca_before, data = labels, colour = "Batch",
+                       main = paste("Before Batch Correction:", data_name)) + theme_bw()
+  
+  # PCA after correction
+  pca_after <- prcomp(t(after_numeric), scale. = TRUE)
+  p_after <- autoplot(pca_after, data = labels, colour = "Batch",
+                      main = paste("After Batch Correction:", data_name)) + theme_bw()
+  
+  # Combine and display
+  grid.arrange(p_before, p_after, ncol = 2)
+}
+
+make_pca_batch_plots(labels = merged_data1_pheno,
+                     before_bc_data = merged_data1,
+                     after_bc_data = merged_data1_bc,
+                     data_name = "Train + Test1")
+make_pca_batch_plots(labels = merged_data2_pheno,
+                     before_bc_data = merged_data2,
+                     after_bc_data = merged_data2_bc,
+                     data_name = "Train + Test2")
+
+#####unmerging merged_data1_bc to get test1_bc and test2_bc
+
+test1_samples <- merged_data1_pheno$GSE_id[merged_data1_pheno$Batch == "2"]
+test1_bc <- merged_data1_bc[, colnames(merged_data1_bc) %in% test1_samples]
+
+test2_samples <- merged_data2_pheno$GSE_id[merged_data2_pheno$Batch == "3"]
+test2_bc <- merged_data2_bc[, colnames(merged_data2_bc) %in% test2_samples]
