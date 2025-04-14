@@ -1,0 +1,85 @@
+###################meta analysis##################
+
+#name first coloumns of all datasets as genes
+
+DGE18312 <- rownames_to_column(DGE18312, var="Genes")
+DGE38481 <- rownames_to_column(DGE38481, var="Genes")
+DGE38484 <- rownames_to_column(DGE38484, var="Genes")
+DGE48072 <- rownames_to_column(DGE48072, var="Genes")
+DGE54913 <- rownames_to_column(DGE54913, var="Genes")
+
+#merge datasets based on common genes
+list_DGE = list(
+  DGE18312 = DGE18312, 
+  DGE38481 = DGE38481, 
+  DGE38484 = DGE38484, 
+  DGE48072 = DGE48072, 
+  DGE54913 = DGE54913)
+
+merged_deg<-list_DGE %>% reduce(inner_join,by='Genes')
+dim(merged_deg)
+
+meta_degs_rem <- rem_mv(diffexp=list_DGE,
+                        pcriteria="P.Value",
+                        foldchangecol='logFC', 
+                        genenamecol="Genes",
+                        llcol='CI.L',
+                        rlcol='CI.R',
+                        metathr=0.01, 
+                        collaps = TRUE)
+
+write.csv(meta_degs_rem@metaresult, "meta_analysis_results.csv", row.names = FALSE)
+
+############forest plot for each indiviual gene#########
+forest_plot <- draw_forest(
+  remres = meta_degs_rem,
+  gene = "AKNA",           #just change gene name here, run the function and print
+  genecol = "Genes", 
+  foldchangecol = "logFC",
+  llcol = "CI.L", 
+  rlcol = "CI.R"
+)
+print(forest_plot)
+
+# calculate i^2 value
+metavolcanoinput = as.data.frame(t(meta_degs_rem@metaresult))
+rownames(metavolcanoinput)
+QE<-as.numeric(metavolcanoinput["het_QE",])
+
+i2<- pmax(0, ((QE - 4) / QE) * 100)
+#print(i2)
+
+#append i^2 value to list
+metavolcanoinput["i2", ] <- i2
+
+colnames(metavolcanoinput)= metavolcanoinput[1,]
+metavolcanoinput= metavolcanoinput[-1,]
+metavolcanoinput= rownames_to_column(metavolcanoinput, var = "values")
+metavolcanoinput=as.data.frame(metavolcanoinput)
+
+write.csv(metavolcanoinput,"meta_results.csv")
+
+##################to make indivual funnel plots############
+
+funnelplotvalue=meta_degs_rem@input
+funnel_plot_columns <- funnelplotvalue[, c("Genes", grep("logFC_|vi_", colnames(funnelplotvalue), value = TRUE))]
+
+generate_funnel_plot <- function(gene_name, funnelplotvalue) {
+  gene_data <- funnelplotvalue[funnelplotvalue$Genes == gene_name, ]
+  
+  logFC_cols <- grep("logFC_", colnames(funnelplotvalue), value = TRUE)
+  vi_cols <- grep("vi_", colnames(funnelplotvalue), value = TRUE)
+  
+  gene_data_long <- data.frame(
+    Dataset = 1:5,   
+    yi = as.numeric(gene_data[, logFC_cols]),  
+    vi = as.numeric(gene_data[, vi_cols])      
+  )
+  
+  rma_result <- rma(yi = gene_data_long$yi, vi = gene_data_long$vi, method = "REML")
+  
+  funnel.rma(rma_result, label = TRUE, main = paste("Funnel Plot for", gene_name))
+}
+
+#run the function and just change gene name here to get its funnel plot
+generate_funnel_plot("RAC2", funnelplotvalue)
