@@ -1,0 +1,31 @@
+####data extraction for test and train#####
+#train data extraction
+metafile <- tibble::rownames_to_column(metafile, var = "Genes")
+
+required_train <- c("GSE38481", "GSE48072", "GSE54913", "Kumarasinghe")
+filtered_pheno <- phenodata %>% filter(Batch %in% required_train)
+samples_to_extract <- filtered_pheno$GSE_id
+train <- metafile %>% select(Genes, all_of(samples_to_extract))
+
+#test1 data extraction
+test1_ids <- phenodata %>%
+  filter(Batch == "GSE18312") %>% 
+  slice_head(n = 21) %>%
+  pull(GSE_id)
+set.seed(123)
+test1_ids <- sample(test1_ids)
+test1 <- metafile %>% select(Genes, all_of(test1_ids))
+
+#test2 data extraction
+set.seed(123)
+controls_27383 <- phenodata %>%
+  filter(Batch == "GSE27383", Pheno_data == "CNT") %>%
+  sample_n(8)
+
+scz_27383 <- phenodata %>%
+  filter(Batch == "GSE27383", Pheno_data == "SCZ") %>%
+  sample_n(13)
+
+test2_ids <- c(controls_27383$GSE_id, scz_27383$GSE_id)
+
+test2 <- metafile %>% select(Genes, all_of(test2_ids))
