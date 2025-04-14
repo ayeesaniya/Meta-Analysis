@@ -1,4 +1,4 @@
-setwd("C:/Users/Admin/Desktop/SSBS Dissertation/work/working directory")
+setwd("")
 
 #####creating metafile####
 #use preprocessed and unnormalized datasets
