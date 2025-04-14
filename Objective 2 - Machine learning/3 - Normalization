@@ -1,0 +1,150 @@
+###########normalization##############
+
+data_list <- list(train=train,test1=test1,test2=test2)
+
+# Loop through each dataset (train/test) unmerge datasets from train 
+for(data_name in names(data_list)){
+  data_matrix <- data_list[[data_name]]
+  
+  # Get unique batches for current data
+  batches <- unique(phenodata$Batch[phenodata$GSE_id %in% colnames(data_matrix)])
+  
+  # Loop through each batch and subset
+  for(batch in batches){
+    
+    # Get sample IDs of this batch
+    sample_ids <- phenodata %>%
+      filter(Batch == batch, GSE_id %in% colnames(data_matrix)) %>%
+      pull(GSE_id)
+    
+    # Subset data
+    subset_data <- data_matrix[, sample_ids, drop = FALSE]
+    rownames(subset_data) <- metafile$Gene
+    # Create object name dynamically
+    object_name <- paste0(batch, "_", data_name)
+    assign(object_name, subset_data, envir = .GlobalEnv)
+    
+  }
+}
+#for labels of train and test
+for(data_name in names(data_list)){
+  
+  # Get corresponding expression data
+  data_matrix <- data_list[[data_name]]
+  
+  # Get unique batches present in this data
+  batches <- unique(phenodata$Batch[phenodata$GSE_id %in% colnames(data_matrix)])
+  
+  for(batch in batches){
+    
+    # Get sample IDs belonging to this batch and data
+    sample_ids <- phenodata %>%
+      filter(Batch == batch, GSE_id %in% colnames(data_matrix)) %>%
+      pull(GSE_id)
+    
+    # Subset phenodata for these sample IDs
+    label_data <- phenodata %>%
+      filter(GSE_id %in% sample_ids) %>%
+      select(Batch, GSE_id, Pheno_data)   # Only first 3 columns
+    
+    # Create label object name 
+    label_name <- paste0("label_", batch, "_", data_name)
+    
+    # Assign object to environment dynamically
+    assign(label_name, label_data, envir = .GlobalEnv)
+  }
+}
+
+###quantile normalization 
+
+normalize_and_plot_data <- function(raw_data, label_data, data_name) {
+  
+  raw_data <- as.matrix(raw_data)
+  rownames(label_data) <- colnames(raw_data)
+  
+  phenodata <- new("AnnotatedDataFrame", data = label_data)
+  exprSet <- ExpressionSet(assayData = raw_data, phenoData = phenodata)
+  
+  par(mfrow = c(1, 2), mar = c(6, 4, 4, 2))  # adjust margins
+  
+  # Boxplot before normalization (raw scale)
+  boxplot(raw_data, 
+          las = 2,
+          main = paste0(data_name, " - Before Normalization"),
+          ylab = "Expression (raw)",
+          outline = FALSE,
+          col = "lightblue")
+  
+  # Quantile normalization
+  raw_data_qnorm <- normalize.quantiles(raw_data)
+  
+  # Formatting normalized data
+  raw_data_qnorm_df <- as.data.frame(raw_data_qnorm)
+  rownames(raw_data_qnorm_df) <- rownames(raw_data)
+  colnames(raw_data_qnorm_df) <- colnames(raw_data)
+  raw_data_qnorm_df <- log2(raw_data_qnorm_df + 1)  # avoid log(0)
+  
+  boxplot(raw_data_qnorm_df, 
+          las = 2,
+          main = paste0(data_name, " - After Quantile Normalization"),
+          ylab = "Expression (log2 normalized)",
+          outline = FALSE,
+          col = "skyblue")
+  
+  # Dynamically assign target & normalized dataframe to Global Environment
+  assign(paste0(data_name, "_qnorm"), raw_data_qnorm_df, envir = .GlobalEnv)
+  
+  invisible(NULL)  
+}
+
+normalize_and_plot_data(GSE38481_train, label_GSE38481_train, "GSE38481_train")
+normalize_and_plot_data(GSE48072_train, label_GSE48072_train, "GSE48072_train")
+normalize_and_plot_data(GSE54913_train, label_GSE54913_train, "GSE54913_train")
+normalize_and_plot_data(Kumarasinghe_train, label_Kumarasinghe_train, "Kumarasinghe_train")
+normalize_and_plot_data(GSE18312_test1, label_GSE18312_test1, "GSE18312_test1")
+normalize_and_plot_data(GSE27383_test2, label_GSE27383_test2, "GSE27383_test2")
+
+
+#merge all qnorm train sets
+train_qnorm_ds= list(GSE38481_train_qnorm,
+                          GSE48072_train_qnorm, 
+                          GSE54913_train_qnorm, 
+                          Kumarasinghe_train_qnorm)
+all(sapply(train_qnorm_ds, function(x) all(rownames(x) == rownames(train_qnorm_ds[[1]]))))   #QC to check if gene names (row names are same)
+
+par(mfrow = c(1, 1))#reset layout window
+qnorm_train <- do.call(cbind, train_qnorm_ds)#merge
+qnorm_test1<-GSE18312_test1_qnorm
+qnorm_test2<-GSE27383_test2_qnorm
+
+#boxplots for train, test1 and test2
+boxplot(qnorm_train, 
+        las = 2,
+        main = "Train Data After Quantile Normalization",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+boxplot(qnorm_test1, 
+        las = 2,
+        main = "Test 1 (homogenous) dataset After Quantile Normalization",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+boxplot(qnorm_test2, 
+        las = 2,
+        main = "Test 2 (hetrogenous) dataset After Quantile Normalization",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+
+###merging labels test/train for future use
+##for train data
+train_label_list= list(label_GSE38481_train,
+                            label_GSE48072_train, 
+                            label_GSE54913_train, 
+                            label_Kumarasinghe_train)
+train_labels <- do.call(rbind, train_label_list)
+
+test1_labels<-label_GSE18312_test1
+test2_labels<-label_GSE27383_test2
