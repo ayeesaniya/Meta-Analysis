@@ -1,0 +1,33 @@
+setwd("")
+
+#####merging quantile normalized datasets to obtain common genes####
+#use preprocessed and quantile normalized datasets
+# Read datasets
+X18312 <- read.csv("18312_WN_quantile_normalized.csv")
+X38481 <- read.csv("38481_WN_quantile_normalized.csv")
+X38484 <- read.csv("38484_WN_quantile_normalized.csv")
+X48072 <- read.csv("48072_WN_quantile_normalized.csv")
+X54913 <- read.csv("54913_WN_quantile_normalized.csv")
+XKum <- read.csv("Kum_WN_quantile_normalized.csv")
+X27383<-read.csv("27383_WN_quantile_normalizedd.csv")
+
+#name first coloumns of all datasets as genes
+colnames(X18312)[1] <- "Genes"
+colnames(X38481)[1] <- "Genes"
+colnames(X38484)[1] <- "Genes"
+colnames(X48072)[1] <- "Genes"
+colnames(X54913)[1] <- "Genes"
+colnames(XKum)[1] <- "Genes"
+colnames(X27383)[1] <- "Genes"
+
+#merge datasets based on common genes
+datasetlist=list(X18312, X38481, X38484, X48072, X54913,XKum,X27383)
+metafile<-datasetlist %>% reduce(inner_join,by='Genes')
+dim(metafile) #6733 429
+
+
+#loading pheotype data
+phenodata=read.csv("merged_pheno_data.csv",header=TRUE)
+dim(phenodata) #428 3
+
+#here my phenodata has 3 columns - Batch (contains dataset_id e.g: GSE18312, GSE27383 etc), GSE_id (contains sample ids or GSM ids) and Pheno_data(SCZ/CNT)
