@@ -1,0 +1,36 @@
+setwd("C:/Users/Admin/Desktop/SSBS Dissertation/work/working directory")
+
+#####creating metafile####
+#use preprocessed and unnormalized datasets
+X18312 <- readRDS("18312_WN.rds")
+dim(X18312)#17131 
+df18312 =rownames_to_column(X18312, "Genes")
+
+df27383 <- read.csv("27383_all.csv")
+dim(df27383)#21532 
+
+X38481 <- readRDS("38481_WN.rds")
+dim(X38481)#12647 
+df38481 =rownames_to_column(X38481, "Genes")
+
+X48072 <- readRDS("48072_WN.rds")
+dim(X48072) #15155 
+df48072 =rownames_to_column(X48072, "Genes")
+
+X54913 <- readRDS("54913_WN.rds")
+dim(X54913)#13023 
+df54913 =rownames_to_column(X54913, "Genes")
+
+XKum <- readRDS("Kum_WN.rds")
+dim(XKum)#10544
+dfKum = rownames_to_column(XKum, "Genes")
+
+#/ Merging data tables
+dfs= list(df18312, df27383, df38481, df48072, df54913, dfKum)
+df= join_all(dfs, by="Genes", type = "inner")
+
+metafile= column_to_rownames(df, var = "Genes")
+dim(metafile) #6773 
+
+phenodata=read.csv("merged_pheno_data.csv",header=TRUE)
+dim(phenodata) #428 3
