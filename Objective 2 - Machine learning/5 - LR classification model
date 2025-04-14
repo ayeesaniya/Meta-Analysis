@@ -1,0 +1,43 @@
+######################LR model##############
+# Prepare phenotype labels as factors
+pheno_train <- as.factor(train_labels$Pheno_data)
+pheno_test1 <- as.factor(test1_labels$Pheno_data)
+pheno_test2 <- as.factor(test2_labels$Pheno_data)
+
+# Transpose all datasets to make samples = rows, features = columns
+train_bc_t <- as.data.frame(t(train_bc))
+test1_bc_t <- as.data.frame(t(test1_bc))
+test2_bc_t <- as.data.frame(t(test2_bc))
+
+# Optional: Ensure same feature order in test sets
+test1_bc_t <- test1_bc_t[, colnames(train_bc_t)]
+test2_bc_t <- test2_bc_t[, colnames(train_bc_t)]
+
+# Set up 10-fold cross-validation
+train_control <- trainControl(
+  method = "cv",
+  number = 10,
+  savePredictions = "final",
+  classProbs = TRUE
+)
+
+# Train logistic regression model using glmnet
+LRmodel <- train(
+  x = train_bc_t,
+  y = pheno_train,
+  method = "glmnet",
+  family = "binomial",
+  trControl = train_control
+)
+
+# ---- Predict and evaluate on test1 ----
+pred_test1 <- predict(LRmodel, newdata = test1_bc_t)
+cm_test1 <- confusionMatrix(pred_test1, pheno_test1)
+cat("Confusion Matrix - Test1:\n")
+print(cm_test1)
+
+# ---- Predict and evaluate on test2 ----
+pred_test2 <- predict(LRmodel, newdata = test2_bc_t)
+cm_test2 <- confusionMatrix(pred_test2, pheno_test2)
+cat("\nConfusion Matrix - Test2:\n")
+print(cm_test2)
