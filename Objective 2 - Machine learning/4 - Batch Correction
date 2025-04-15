@@ -27,16 +27,26 @@ batch_correction_pca_plot <- function(qnorm_data, labels, data_name){
 
 train_bc  <- batch_correction_pca_plot(qnorm_train, train_labels, "Train Data")
 
+######boxplot for before and after batch correction of train data
+boxplot(qnorm_train, 
+        las = 2,
+        main = "Train dataset before BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+boxplot(train_bc, 
+        las = 2,
+        main = "Train dataset after BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
 #####Batch correction for test data using train dataset as reference dataset
 #creating merged_data
 #merged data = train_bc+test1/2
-rownames(test1) <- test1[, 1]
-test1 <- test1[, -1]
-merged_data1 <- cbind(train_bc, test1)
-
-rownames(test2) <- test2[, 1]
-test2 <- test2[, -1]
-merged_data2 <- cbind(train_bc, test2)
+merged_data1 <- cbind(train_bc, qnorm_test1)
+merged_data2 <- cbind(train_bc, qnorm_test2)
 
 train_labels$Batch <- 1
 test1_labels$Batch <- 2
@@ -80,6 +90,21 @@ make_pca_batch_plots(labels = merged_data2_pheno,
                      after_bc_data = merged_data2_bc,
                      data_name = "Train + Test2")
 
+######boxplot for before and after batch correction of test1 data
+boxplot(merged_data1, 
+        las = 2,
+        main = "train+Test 1 before BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+boxplot(merged_data1_bc, 
+        las = 2,
+        main = "train+Test 1 after BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
 #####unmerging merged_data1_bc to get test1_bc and test2_bc
 
 test1_samples <- merged_data1_pheno$GSE_id[merged_data1_pheno$Batch == "2"]
@@ -87,3 +112,32 @@ test1_bc <- merged_data1_bc[, colnames(merged_data1_bc) %in% test1_samples]
 
 test2_samples <- merged_data2_pheno$GSE_id[merged_data2_pheno$Batch == "3"]
 test2_bc <- merged_data2_bc[, colnames(merged_data2_bc) %in% test2_samples]
+
+##############boxplots of BC for QC
+boxplot(merged_data1, 
+        las = 2,
+        main = "Train+Test 1 dataset before BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+boxplot(merged_data1_bc, 
+        las = 2,
+        main = "Train+Test 1 dataset After BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+boxplot(merged_data2, 
+        las = 2,
+        main = "Train+Test 2 dataset before BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
+
+boxplot(merged_data1_bc, 
+        las = 2,
+        main = "Train+Test 2 dataset After BC",
+        ylab = "Expression (log2 normalized)",
+        outline = FALSE,
+        col = "skyblue")
