@@ -46,4 +46,5 @@ Outcome - Homogenous and hetrogenous datasets were identified.
 Hypothesis - The test data made of homogenous dataset (test1) must show greater accuracy than test data made of heterogenous dataset (test2).
 
 
-Contact me - saniyanagesh.dhadge2021@vitstudent.ac.in
+Contact me - saniyanagesh.dhadge2021@vitstudent.ac.in <br />
+_This project was carried out at MACD lab at Symbiosis School of Biological Sciences, Lavale, Pune_
