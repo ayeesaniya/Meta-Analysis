@@ -1,0 +1,33 @@
+//this fucntion inputs quantile normalized data(qnorm_data), phenotypic data(labels) and data_name(the label you want in PCA plots).
+//the output is batch corrected object names qnorm_data_bc, and before and after PCA plots
+
+#############Batch correction##############
+##batch correction of train data
+
+batch_correction_pca_plot <- function(qnorm_data, labels, data_name){
+  
+  # Batch Correction
+  qnorm_data = 2^(qnorm_data)
+  phenobatch = data.frame(Batch = labels$Batch)
+  modphenoBC = model.matrix(~1, data=phenobatch)
+  corrected_data = ComBat(dat = qnorm_data, batch = labels$Batch, mod = modphenoBC)
+  
+  # PCA before correction
+  qnorm_data_numeric <- apply(qnorm_data, 2, as.numeric)
+  pca_before <- prcomp(t(qnorm_data_numeric), scale. = TRUE)
+  p_before <- autoplot(pca_before, data=labels, colour="Batch",
+                       main=paste("Before Batch Correction:", data_name)) + theme_bw()
+  
+  # PCA after correction
+  pca_after <- prcomp(t(corrected_data), scale. = TRUE)
+  p_after <- autoplot(pca_after, data=labels, colour="Batch",
+                      main=paste("After Batch Correction:", data_name)) + theme_bw()
+  
+  # Combine plots side by side
+  grid.arrange(p_before, p_after, ncol=2)
+  
+  assign(paste0(data_name, "_bc"), corrected_data, envir = .GlobalEnv)
+}
+
+//call function
+train_bc  <- batch_correction_pca_plot(qnorm_train, train_labels, "Train Data")
